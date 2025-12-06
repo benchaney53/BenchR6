@@ -2,3 +2,7 @@ discord.py==2.4.0
 python-dotenv==1.0.0
 requests==2.32.3
 r6sapi>=1.4.1
+# aiohttp is pulled indirectly but older versions break on Python 3.11 due to
+# deprecated asyncio.coroutine usage. Pin to a modern release to avoid startup
+# crashes on hosts using newer Python versions.
+aiohttp>=3.9.5
