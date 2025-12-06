@@ -1,6 +1,14 @@
 import asyncio
 import logging
+import types
 from typing import Optional
+
+# r6sapi 1.x still decorates coroutines using the removed asyncio.coroutine
+# helper. Provide a compatibility alias on Python 3.11+ so the import succeeds
+# without crashing during bot startup.
+if not hasattr(asyncio, "coroutine"):
+    asyncio.coroutine = types.coroutine
+
 import r6sapi as api
 
 logger = logging.getLogger(__name__)
