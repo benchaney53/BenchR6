@@ -33,6 +33,12 @@ class R6SAPIClient:
     async def authenticate(self) -> bool:
         """Authenticate with Ubisoft"""
         try:
+            if self.auth:
+                try:
+                    await self.auth.close()
+                except Exception as close_error:
+                    logger.debug(f"Ignoring error while closing old session: {close_error}")
+
             self.auth = api.Auth(self.email, self.password)
             logger.info("Successfully authenticated with Ubisoft")
             return True
