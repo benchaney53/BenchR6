@@ -102,6 +102,20 @@ RANKS = {
     "champion": ("Champion", "Champion"),
 }
 
+async def ensure_api_authenticated(ctx: Optional[commands.Context] = None) -> bool:
+    """Ensure the Ubisoft API client is authenticated before making requests."""
+    if api.auth:
+        return True
+
+    logger.warning("API client not authenticated. Attempting to authenticate now.")
+    success = await api.authenticate()
+    if not success:
+        if ctx:
+            await ctx.send("❌ Could not authenticate with Ubisoft. Please check the bot credentials.")
+        return False
+
+    return True
+
 async def log_to_admin(message: str):
     """Log message to admin channel"""
     if admin_logging_channel:
@@ -393,9 +407,12 @@ async def link(ctx, *args):
     if not r6_username:
         await ctx.send("❌ Please provide an R6 username.")
         return
-    
+
     # Validate username
     logger.info(f"!link invoked by {ctx.author} targeting {target_user} with username '{r6_username}'")
+
+    if not await ensure_api_authenticated(ctx):
+        return
 
     if not await api.is_username_valid(r6_username):
         logger.info(f"Username validation failed for '{r6_username}' (requested by {ctx.author})")
@@ -502,6 +519,50 @@ async def unlink(ctx, user: Optional[discord.User] = None):
     
     log_msg = f"🔓 Unlinked {target_user}"
     await log_to_admin(log_msg)
+
+
+@bot.command(name='stats')
+async def stats(ctx, username: Optional[str] = None):
+    """Show the current rank for an R6 username without linking."""
+
+    # Check if command is used in bot channel or DM
+    if ctx.guild:
+        if not bot_command_channel:
+            await ctx.send("❌ Bot command channel is not configured. Please run `!setup` first.")
+            return
+
+        if ctx.channel.id != bot_command_channel.id:
+            await ctx.send(f"This command can only be used in {bot_command_channel.mention} or DMs.")
+            return
+
+    if not username:
+        await ctx.send("❌ Please provide an R6 username.")
+        return
+
+    if not await ensure_api_authenticated(ctx):
+        return
+
+    if not await api.is_username_valid(username):
+        embed = discord.Embed(
+            title="❌ Invalid Username",
+            description=f"'{username}' is not a valid R6 username.",
+            color=discord.Color.red(),
+        )
+        embed.add_field(name="", value="Please double-check the spelling and platform (defaults to PC).", inline=False)
+        await ctx.send(embed=embed)
+        return
+
+    rank = await api.get_player_rank(username)
+
+    embed = discord.Embed(
+        title="📊 Player Stats",
+        color=discord.Color.blue(),
+        timestamp=datetime.now(),
+    )
+    embed.add_field(name="Username", value=username, inline=False)
+    embed.add_field(name="Current Rank", value=rank or "Unranked", inline=False)
+
+    await ctx.send(embed=embed)
 
 @bot.command(name='update')
 @commands.has_permissions(administrator=True)
@@ -629,6 +690,11 @@ async def help_command(ctx):
             inline=False
         )
         embed.add_field(
+            name="!stats [username]",
+            value="View the current rank for an R6 username without linking",
+            inline=False
+        )
+        embed.add_field(
             name="!update",
             value="Manually trigger rank update for all users (admin only)",
             inline=False
@@ -651,6 +717,11 @@ async def help_command(ctx):
         embed.add_field(
             name="!unlink",
             value="Unlink your Discord from your R6 account",
+            inline=False
+        )
+        embed.add_field(
+            name="!stats [username]",
+            value="View the current rank for an R6 username without linking",
             inline=False
         )
         embed.add_field(

@@ -81,6 +81,7 @@ class R6SAPIClient:
         """Check if a username exists"""
         try:
             if not self.auth:
+                logger.warning("Username validation requested before authentication was established")
                 return False
             
             platform_map = {
@@ -94,7 +95,7 @@ class R6SAPIClient:
             
             return player is not None
         except Exception as e:
-            logger.debug(f"Error validating username {username}: {e}")
+            logger.warning(f"Error validating username {username}: {e}")
             return False
     
     def get_similar_usernames(self, username: str, limit: int = 5) -> list:
