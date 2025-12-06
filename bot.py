@@ -352,7 +352,9 @@ async def setup(ctx):
 @bot.command(name='link')
 async def link(ctx, *args):
     """Link user to R6 account. Usage: !link username or !link @user username (admin only)"""
-    
+
+    logger.info(f"Received !link command from {ctx.author} in {ctx.channel} with args: {args}")
+
     # Check if command is used in bot channel or DM
     if ctx.guild:
         if not bot_command_channel:
@@ -393,7 +395,10 @@ async def link(ctx, *args):
         return
     
     # Validate username
+    logger.info(f"!link invoked by {ctx.author} targeting {target_user} with username '{r6_username}'")
+
     if not await api.is_username_valid(r6_username):
+        logger.info(f"Username validation failed for '{r6_username}' (requested by {ctx.author})")
         similar = api.get_similar_usernames(r6_username)
         embed = discord.Embed(
             title="❌ Invalid Username",
@@ -448,7 +453,7 @@ async def link(ctx, *args):
     )
     embed.add_field(name="Current Rank", value=rank or "Unranked")
     await ctx.send(embed=embed)
-    
+
     log_msg = f"🔗 Linked {target_user} to R6 account: {r6_username} (Rank: {rank or 'Unranked'})"
     await log_to_admin(log_msg)
 
