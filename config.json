@@ -1,0 +1,20 @@
+{
+  "guild_id": 123456789,
+  "api": {
+    "rate_limit_warning_threshold": 80
+  },
+  "channels": {
+    "bot_commands_name": "r6-bot-commands",
+    "admin_logging_name": "r6-bot-logs"
+  },
+  "roles": {
+    "unlinked_name": "Unlinked",
+    "unranked_name": "Unranked"
+  },
+  "updates": {
+    "interval_hours": 1
+  },
+  "database": {
+    "path": "r6_bot.db"
+  }
+}
