@@ -144,14 +144,23 @@ async def get_or_create_channel(name: str, is_admin: bool = False) -> discord.Te
     """Get or create a text channel"""
     channel = discord.utils.get(guild.text_channels, name=name)
     if not channel:
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False)
-        }
+        overwrites = {}
         if is_admin:
-            # Only admins can see
+            # Hide from @everyone but allow administrators to read and send
             admin_role = discord.utils.get(guild.roles, name="Administrator")
             overwrites[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
-        
+            if admin_role:
+                overwrites[admin_role] = discord.PermissionOverwrite(
+                    read_messages=True,
+                    send_messages=True
+                )
+        else:
+            # Default channel permissions allow members to use bot commands
+            overwrites[guild.default_role] = discord.PermissionOverwrite(
+                read_messages=True,
+                send_messages=True
+            )
+
         channel = await guild.create_text_channel(name, overwrites=overwrites)
         logger.info(f"Created channel: {name}")
     return channel
@@ -345,9 +354,14 @@ async def link(ctx, *args):
     """Link user to R6 account. Usage: !link username or !link @user username (admin only)"""
     
     # Check if command is used in bot channel or DM
-    if ctx.guild and ctx.channel.id != bot_command_channel.id:
-        await ctx.send(f"This command can only be used in {bot_command_channel.mention} or DMs.")
-        return
+    if ctx.guild:
+        if not bot_command_channel:
+            await ctx.send("❌ Bot command channel is not configured. Please run `!setup` first.")
+            return
+
+        if ctx.channel.id != bot_command_channel.id:
+            await ctx.send(f"This command can only be used in {bot_command_channel.mention} or DMs.")
+            return
     
     target_user = ctx.author
     r6_username = None
@@ -443,9 +457,14 @@ async def unlink(ctx, user: Optional[discord.User] = None):
     """Unlink from R6 account. Usage: !unlink or !unlink @user (admin only)"""
     
     # Check if command is used in bot channel or DM
-    if ctx.guild and ctx.channel.id != bot_command_channel.id:
-        await ctx.send(f"This command can only be used in {bot_command_channel.mention} or DMs.")
-        return
+    if ctx.guild:
+        if not bot_command_channel:
+            await ctx.send("❌ Bot command channel is not configured. Please run `!setup` first.")
+            return
+
+        if ctx.channel.id != bot_command_channel.id:
+            await ctx.send(f"This command can only be used in {bot_command_channel.mention} or DMs.")
+            return
     
     target_user = user if user else ctx.author
     
@@ -487,9 +506,14 @@ async def update(ctx):
     if ctx.guild.id != CONFIG['guild_id']:
         return
     
-    if ctx.guild and ctx.channel.id != bot_command_channel.id:
-        await ctx.send(f"This command can only be used in {bot_command_channel.mention}.")
-        return
+    if ctx.guild:
+        if not bot_command_channel:
+            await ctx.send("❌ Bot command channel is not configured. Please run `!setup` first.")
+            return
+
+        if ctx.channel.id != bot_command_channel.id:
+            await ctx.send(f"This command can only be used in {bot_command_channel.mention}.")
+            return
     
     embed = discord.Embed(
         title="⏳ Updating ranks...",
