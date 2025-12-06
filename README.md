@@ -78,6 +78,7 @@ python bot.py
 ### User Commands
 - `!link [username]` - Link your Discord account to an R6 username
 - `!unlink` - Unlink your Discord from your R6 account
+- `!stats [username]` - View the current rank for an R6 username without linking
 - `!help` - Show available commands
 
 ### Admin Commands

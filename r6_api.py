@@ -20,6 +20,15 @@ class R6SAPIClient:
         self.auth = None
         self.request_count = 0
         self.rate_limit = None
+
+    async def _handle_auth_failure(self, error: Exception) -> bool:
+        """Attempt to re-authenticate when Ubisoft rejects a request."""
+        message = str(error).lower()
+        if "403" in message or "unauthorized" in message:
+            logger.warning("Authentication appears invalid; re-authenticating with Ubisoft")
+            return await self.authenticate()
+
+        return False
     
     async def authenticate(self) -> bool:
         """Authenticate with Ubisoft"""
@@ -40,61 +49,68 @@ class R6SAPIClient:
             except Exception as e:
                 logger.error(f"Error closing session: {e}")
     
-    async def get_player_rank(self, username: str, platform: str = "pc") -> Optional[str]:
+    async def get_player_rank(self, username: str, platform: str = "pc", retry: bool = True) -> Optional[str]:
         """Get player's current rank"""
         try:
             if not self.auth:
                 return None
-            
+
             self.request_count += 1
-            
+
             # Map platform names
             platform_map = {
                 "pc": api.Platforms.UPLAY,
                 "xbox": api.Platforms.XBOX,
                 "ps4": api.Platforms.PLAYSTATION
             }
-            
+
             platform_obj = platform_map.get(platform.lower(), api.Platforms.UPLAY)
-            
+
             # Get player
             player = await self.auth.get_player(username, platform_obj)
             if not player:
                 logger.debug(f"Player not found: {username}")
                 return None
-            
+
             # Get current seasonal stats
             seasonal = await player.get_seasonal()
             if not seasonal:
                 logger.debug(f"No seasonal data for {username}")
                 return None
-            
+
             # Get rank from current season
             rank = seasonal.rank
             return rank if rank else "Unranked"
-            
+
         except Exception as e:
+            if retry and await self._handle_auth_failure(e):
+                return await self.get_player_rank(username, platform, retry=False)
+
             logger.error(f"Error getting player rank for {username}: {e}")
             return None
-    
-    async def is_username_valid(self, username: str, platform: str = "pc") -> bool:
+
+    async def is_username_valid(self, username: str, platform: str = "pc", retry: bool = True) -> bool:
         """Check if a username exists"""
         try:
             if not self.auth:
+                logger.warning("Username validation requested before authentication was established")
                 return False
-            
+
             platform_map = {
                 "pc": api.Platforms.UPLAY,
                 "xbox": api.Platforms.XBOX,
                 "ps4": api.Platforms.PLAYSTATION
             }
-            
+
             platform_obj = platform_map.get(platform.lower(), api.Platforms.UPLAY)
             player = await self.auth.get_player(username, platform_obj)
-            
+
             return player is not None
         except Exception as e:
-            logger.debug(f"Error validating username {username}: {e}")
+            if retry and await self._handle_auth_failure(e):
+                return await self.is_username_valid(username, platform, retry=False)
+
+            logger.warning(f"Error validating username {username}: {e}")
             return False
     
     def get_similar_usernames(self, username: str, limit: int = 5) -> list:
