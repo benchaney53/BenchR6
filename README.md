@@ -10,7 +10,7 @@ A Discord bot that automatically assigns roles based on player ranks in Rainbow 
 - **Manual Updates**: Admin command to manually trigger updates
 - **Admin Logging**: Dedicated channel for tracking all bot actions
 - **Auto-role on Join**: Assigns cached roles when members rejoin the server
-- **No API Key Required**: Uses the free R6Tab API
+- **Tracker.gg Integration**: Pulls ranks from Tracker Network's Rainbow Six Siege API
 
 ## Setup Instructions
 
@@ -18,7 +18,7 @@ A Discord bot that automatically assigns roles based on player ranks in Rainbow 
 - Python 3.8+
 - Discord server with admin access
 - Discord bot token
-- **Ubisoft account** (email and password) - Can be a separate "burner" account
+- **Tracker Network API key** - Free key from https://tracker.gg/developers
 
 ### 2. Installation
 
@@ -33,11 +33,8 @@ pip install -r requirements.txt
 **Create `.env` file** (copy from `.env.example`):
 ```
 DISCORD_BOT_TOKEN=your_discord_bot_token_here
-UBISOFT_EMAIL=your_ubisoft_email@example.com
-UBISOFT_PASSWORD=your_ubisoft_password
+TRACKER_API_KEY=your_tracker_network_api_key
 ```
-
-**Important:** You can create a free "burner" Ubisoft account just for the bot. It doesn't need to own Rainbow Six Siege.
 
 **Edit `config.json`**:
 ```json
@@ -47,18 +44,12 @@ UBISOFT_PASSWORD=your_ubisoft_password
 }
 ```
 
-### 4. Setting up a Ubisoft Account
+### 4. Getting a Tracker Network API Key
 
-You can use a free "burner" Ubisoft account for the bot:
-
-1. Go to https://www.ubisoft.com
-2. Click "Sign Up" or "Create Account"
-3. Fill in email and password (doesn't need to own any games)
-4. **Important:** Make sure **2FA (Two-Factor Authentication) is disabled** on the account
-   - Go to Account Settings → Security → Disable 2FA
-5. Use these credentials in your `.env` file
-
-The account just needs to be able to authenticate with Ubisoft's servers.
+1. Visit https://tracker.gg/developers
+2. Sign in and create an application
+3. Copy the **API Key** from the application page
+4. Paste it into your `.env` file as `TRACKER_API_KEY`
 
 ```bash
 python bot.py
@@ -126,14 +117,13 @@ Bot logs are stored in `logs/r6_bot.log` and also output to console. Admin chann
 - Make sure bot is in the correct channel
 - For DMs, ensure bot has DM permissions enabled
 
-**"Failed to authenticate with Ubisoft" error:**
-- Check that email and password are correct in `.env`
-- Make sure **2FA is disabled** on the Ubisoft account
-- The account must be able to log in to Ubisoft website
+**"Failed to initialize Tracker Network API" error:**
+- Ensure `TRACKER_API_KEY` is present in `.env`
+- Verify the key is active and associated with your Tracker application
 
 **Invalid username errors:**
 - Double-check R6 username spelling (case-sensitive)
-- Make sure the player account exists and is linked to the Ubisoft account
+- Make sure the player account exists on Tracker Network
 - The account must have played at least one ranked match this season
 
 **Members not getting roles on join:**
@@ -144,7 +134,7 @@ Bot logs are stored in `logs/r6_bot.log` and also output to console. Admin chann
 **Rank updates not working:**
 - Verify the R6 username is correct and exact match
 - Make sure player has played ranked matches this season
-- Ubisoft API may take a few minutes to reflect recent rank changes
+- Tracker Network data may lag slightly behind in-game updates
 - Check bot logs for authentication errors
 
 ## Database
@@ -156,12 +146,10 @@ Bot uses SQLite database (`r6_bot.db`) to store:
 
 ## API
 
-Bot uses the **r6sapi** Python library which connects to Ubisoft's official R6 API:
-- Uses Ubisoft account authentication (email/password)
-- Direct access to official Ubisoft R6 data
-- Can be a free "burner" Ubisoft account
-- No rate limits (Ubisoft's servers handle throttling)
-- **2FA must be disabled** on the Ubisoft account
+Bot uses the **Tracker Network** Rainbow Six Siege API:
+- Requires a free Tracker Network developer API key
+- Tracks rate limits via response headers
+- Pulls season ranks from Tracker.gg player profiles
 
 ## Security Notes
 

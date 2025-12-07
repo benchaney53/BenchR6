@@ -68,15 +68,14 @@ bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 # Initialize database and API
 db = Database(CONFIG['database']['path'])
 
-# Get Ubisoft credentials
-ubisoft_email = os.getenv('UBISOFT_EMAIL')
-ubisoft_password = os.getenv('UBISOFT_PASSWORD')
+# Get Tracker Network API key
+tracker_api_key = os.getenv('TRACKER_API_KEY')
 
-if not ubisoft_email or not ubisoft_password:
-    logger.error("UBISOFT_EMAIL and UBISOFT_PASSWORD must be set in .env")
+if not tracker_api_key:
+    logger.error("TRACKER_API_KEY must be set in .env")
     exit(1)
 
-api = R6SAPIClient(ubisoft_email, ubisoft_password)
+api = R6SAPIClient(tracker_api_key)
 
 # Global variables
 bot_command_channel = None
@@ -103,15 +102,15 @@ RANKS = {
 }
 
 async def ensure_api_authenticated(ctx: Optional[commands.Context] = None) -> bool:
-    """Ensure the Ubisoft API client is authenticated before making requests."""
-    if api.auth:
+    """Ensure the Tracker Network API session is available before making requests."""
+    if api.session and not api.session.closed:
         return True
 
     logger.warning("API client not authenticated. Attempting to authenticate now.")
     success = await api.authenticate()
     if not success:
         if ctx:
-            await ctx.send("❌ Could not authenticate with Ubisoft. Please check the bot credentials.")
+            await ctx.send("❌ Could not initialize Tracker Network API. Please check the bot credentials.")
         return False
 
     return True
@@ -247,11 +246,11 @@ async def on_ready():
     
     logger.info(f"Bot logged in as {bot.user}")
     
-    # Authenticate with Ubisoft
-    if not api.auth:
+    # Authenticate with Tracker Network
+    if not api.session or api.session.closed:
         auth_success = await api.authenticate()
         if not auth_success:
-            logger.error("Failed to authenticate with Ubisoft. Exiting.")
+            logger.error("Failed to initialize Tracker Network API. Exiting.")
             exit(1)
     
     # Get guild
